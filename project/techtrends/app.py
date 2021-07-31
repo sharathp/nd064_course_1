@@ -82,11 +82,18 @@ def create():
 
 @app.route("/healthz")
 def healthz():
-    response = app.response_class(
-        response=json.dumps({'result': 'OK - healthy'}),
-        mimetype='application/json'
-    )
-    return response
+    db_connection_success = __db_connection_test()
+    if db_connection_success == 0:
+        return app.response_class(
+            status=500,
+            response=json.dumps({'result': 'ERROR - unhealthy'}),
+            mimetype='application/json'
+        )
+    else:
+        return app.response_class(
+            response=json.dumps({'result': 'OK - healthy'}),
+            mimetype='application/json'
+        )
 
 @app.route("/metrics")
 def metrics():
@@ -103,6 +110,12 @@ def __get_post_count():
     count = connection.execute('SELECT count() as total FROM posts').fetchone()
     connection.close()
     return count['total']
+
+def __db_connection_test():
+    connection = get_db_connection()
+    table_count = connection.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='posts'").fetchone()
+    connection.close()
+    return table_count[0]
 
 # start the application on port 3111
 if __name__ == "__main__":
